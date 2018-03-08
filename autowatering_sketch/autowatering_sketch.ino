@@ -1,6 +1,12 @@
 
+/*
+ *  Ждёт от компьютера команду "команда [значения]"
+ *  get amount:
+ *    Считывает с датчика значение amount раз и отправляет каждое значение обратно на COM-порт
+ *  
+ */
 #include <string.h>
-const short TIMEOUT = 1000; // пауза между измерениями.
+const short TIMEOUT = 500; // пауза между измерениями.
 const char ANALOGPINS[] = {3}; // пины для считывания значений.
 const char VCCPINS[] = {8}; // пины для подачи питания.
 const short MAXREQUESTSIZE = 6; // максимальный размер входящего запроса.
@@ -40,16 +46,28 @@ void setup() {
 void loop() {
   while (1)
     if (Serial.available() > 0) {
-      // считывает sizeof(request) символов или символы до ':', не вставляет '\0' и
+      // считывает sizeof(request) символов или символы до ' ', не вставляет '\0' и
       // оставляет нетронутой часть массива, в которую не производилась запись.
-      request[Serial.readBytesUntil(':', request, sizeof(request))] = '\0';
-      Serial.println(parseRequest(request));
+      request[Serial.readBytesUntil(' ', request, sizeof(request))] = '\0';
+      switch (parseRequest(request)) {
+        case GET:
+          Serial.print("command GET:");
+          int amount = Serial.parseInt();
+          Serial.print(" ");
+          Serial.println(amount);
+          for (int i = 0; i < amount; ++i) {
+            digitalWrite(VCCPINS[0], HIGH);
+            moisture = analogRead(ANALOGPINS[0]);
+            digitalWrite(VCCPINS[0], LOW);
+            Serial.print(moisture);
+            Serial.print('\n');
+            delay(TIMEOUT);
+          }
+          break;
+        
+      }
     }
-  digitalWrite(VCCPINS[0], HIGH);
-  moisture = analogRead(ANALOGPINS[0]);
-  Serial.println(moisture);
-  digitalWrite(VCCPINS[0], LOW);
-  delay(TIMEOUT);
+  
 }
 
 /* Заменить print на write */
